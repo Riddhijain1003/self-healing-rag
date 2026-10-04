@@ -72,6 +72,7 @@ flowchart TD
 ```text
 self-healing-rag/
 ├── main.py            # pipeline: indexing, nodes, critic, graph, CLI loop
+├── app.py             # Streamlit chat UI that shows the healing trace live
 ├── test_critic.py     # tests the critic in isolation with hand-written answers
 ├── docs/
 │   └── company.txt    # knowledge base (fictional company policies)
@@ -99,9 +100,14 @@ pip install -r requirements.txt
 # 4. Add your Groq API key
 echo "GROQ_API_KEY=your_key_here" > .env
 
-# 5. Run
+# 5a. Run the command-line version
 python3 main.py
+
+# 5b. Or run the Streamlit web UI (from the project root)
+streamlit run app.py
 ```
+
+The UI streams every graph node as it finishes (retrieve, generate, critic verdict, query rewrite, fallback), so you can watch the pipeline heal itself instead of just seeing the final answer. Each question is answered independently; there is no chat memory.
 
 Get a free API key from the [Groq console](https://console.groq.com). Make sure `.env` is listed in `.gitignore`.
 
@@ -131,7 +137,7 @@ Candidate answer: Report the damaged phone within 48 hours of delivery and inclu
 Critic -> grounded=True, answered=True | retry_count=0
 ```
 
-### 3. Answer not in the documents: heals, then fails safely
+### 3. Answer not in the documents: heals, then fails safely**
 
 ```text
 Ask a question: Do you ship internationally?
@@ -182,6 +188,7 @@ python3 test_critic.py
 Being upfront about these:
 
 - **Closed-world behaviour.** "Is support available on Saturday?" returns "I don't know" even though the docs say Monday to Friday. This is intentional (see strict grounding), but it is less helpful than a human would be.
+- **Single-turn only.** The UI shows a chat history, but each question is answered independently, so follow-ups like "what about electronics?" have no context.
 - **Small knowledge base.** `company.txt` has about 30 lines. Results on a large, messy corpus are untested.
 - **Rewriting can't invent missing information.** When the answer isn't in the documents, retries only burn LLM calls before reaching the fallback (5 calls in the international-shipping example above).
 - **Same model generates and judges.** Self-evaluation bias is possible. A separate or stronger critic model would be better.

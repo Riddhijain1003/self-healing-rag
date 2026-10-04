@@ -228,16 +228,19 @@ workflow.add_edge("fallback_response", END)
 
 app = workflow.compile()
 
-try:
-    with open("graph_architecture.png", "wb") as f:
-        f.write(app.get_graph().draw_mermaid_png())
-    print("Saved workflow diagram as graph_architecture.png")
-except Exception as e:
-    print(f"Could not render diagram automatically: {e}")
+def save_graph_diagram():
+    """Saves the workflow diagram (needs internet for Mermaid rendering). Only called from the CLI."""
+    try:
+        with open("graph_architecture.png", "wb") as f:
+            f.write(app.get_graph().draw_mermaid_png())
+        print("Saved workflow diagram as graph_architecture.png")
+    except Exception as e:
+        print(f"Could not render diagram automatically: {e}")
 
 
 # --- 7. Execution ---
 if __name__ == "__main__":
+    save_graph_diagram()
     print("\n=== Self-Healing RAG Pipeline Initialized ===")
     print("Type 'exit' or 'quit' to stop.\n")
 
