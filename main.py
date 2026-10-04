@@ -75,7 +75,7 @@ def retrieve(state: GraphState):
     doc_strings = [d.page_content for d in found]
     print(f"Retrieved {len(doc_strings)} chunks for query: '{query}'")
     for i, chunk in enumerate(doc_strings):
-        print(f"  chunk {i}: {chunk[:60].strip()}...")
+        print(f"  chunk {i}: {chunk[:120].replace(chr(10), ' | ')}...")
     return {"documents": doc_strings}
 
 
@@ -111,10 +111,22 @@ def generate(state: GraphState):
     return {"generation": response.content.strip()}
 
 
+def is_refusal(text: str) -> bool:
+    """Deterministic check for the generator's 'I don't know' (handles curly apostrophes)."""
+    return text.lower().replace("\u2019", "'").strip().startswith("i don't know")
+
+
 def grade(state: GraphState):
     """Critic node: audits the answer and does the retry bookkeeping."""
     print("\n--- [CRITIC] AUDITING ANSWER ---")
     print(f"Candidate answer: {state['generation']}")
+
+    # A refusal invents nothing, so there is nothing for the critic to audit.
+    # Skipping it saves an LLM call and avoids false "ungrounded" verdicts on "I don't know".
+    if is_refusal(state["generation"]):
+        new_retry = state["retry_count"] + 1
+        print(f"Critic skipped (model refused) -> grounded=True, answered=False | retry_count={new_retry}")
+        return {"grounded": True, "answered": False, "retry_count": new_retry}
 
     critic_prompt = ChatPromptTemplate.from_messages([
         ("system",
