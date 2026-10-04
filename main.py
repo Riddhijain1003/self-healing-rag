@@ -74,6 +74,8 @@ def retrieve(state: GraphState):
     found = retriever.invoke(query)
     doc_strings = [d.page_content for d in found]
     print(f"Retrieved {len(doc_strings)} chunks for query: '{query}'")
+    for i, chunk in enumerate(doc_strings):
+        print(f"  chunk {i}: {chunk[:60].strip()}...")
     return {"documents": doc_strings}
 
 
@@ -112,6 +114,7 @@ def generate(state: GraphState):
 def grade(state: GraphState):
     """Critic node: audits the answer and does the retry bookkeeping."""
     print("\n--- [CRITIC] AUDITING ANSWER ---")
+    print(f"Candidate answer: {state['generation']}")
 
     critic_prompt = ChatPromptTemplate.from_messages([
         ("system",
@@ -145,13 +148,14 @@ def grade(state: GraphState):
 def rewrite_query(state: GraphState):
     print("\n--- [NODE] REWRITING SEARCH QUERY ---")
     prompt = ChatPromptTemplate.from_template(
-    "Original question: {question}\n"
-    "Previous search query: {previous}\n"
-    "Rewrite it as ONE short natural-language query (max 10 words) with different wording.\n"
-    "Rules: no quotes, no OR/AND, no site: or other search operators, "
-    "no new facts or names that are not in the original question.\n"
-    "Output ONLY the query:"
-)
+        "A search query failed to retrieve documents that answer the question.\n"
+        "Original question: {question}\n"
+        "Previous search query: {previous}\n"
+        "Rewrite it as ONE short natural-language query (max 10 words) with different wording.\n"
+        "Rules: no quotes, no OR/AND, no site: or other search operators, "
+        "and no new facts or names that are not in the original question.\n"
+        "Output ONLY the query:"
+    )
     chain = prompt | llm
     better = chain.invoke({
         "question": state["question"],
