@@ -15,7 +15,7 @@ A plain RAG pipeline fails silently. It retrieves some chunks, the LLM answers, 
 This project adds a feedback loop so the system can detect and handle two different failure modes:
 
 | Failure mode | What went wrong | How the pipeline heals |
-|---|---|---|
+| --- | --- | --- |
 | **Hallucination** | Retrieval was fine, but the LLM invented or extrapolated facts | Regenerate from the same documents with a stricter prompt |
 | **Retrieval miss** | The retrieved chunks didn't contain the answer | Rewrite the search query and retrieve again |
 | **Not in the documents** | The answer genuinely doesn't exist | Stop after the retry limit and return a safe fallback message |
@@ -45,7 +45,7 @@ flowchart TD
 4. **Routing** (pure decision function, no state changes):
 
 | Critic verdict | Action |
-|---|---|
+| --- | --- |
 | grounded and answered | return the answer |
 | not grounded | `regenerate` (same docs, stricter prompt) |
 | grounded but not answered | `rewrite` the search query, then retrieve again |
@@ -56,7 +56,7 @@ flowchart TD
 ## Tech stack
 
 | Layer | Choice |
-|---|---|
+| --- | --- |
 | Orchestration | LangGraph (`StateGraph` with conditional edges) |
 | LLM framework | LangChain (prompts, structured output) |
 | LLM | `openai/gpt-oss-120b` via Groq (`temperature=0`) |
@@ -69,7 +69,7 @@ flowchart TD
 
 ## Project structure
 
-```
+```text
 self-healing-rag/
 ├── main.py            # pipeline: indexing, nodes, critic, graph, CLI loop
 ├── test_critic.py     # tests the critic in isolation with hand-written answers
@@ -113,24 +113,27 @@ The first run downloads the embedding model (about 90 MB). After that it runs fu
 
 Real output from the CLI, trimmed for readability.
 
-**1. Answerable question: accepted on the first try**
-```
+### 1. Answerable question: accepted on the first try
+
+```text
 Ask a question: How much does express delivery cost?
 Candidate answer: 149 rupees.
 Critic -> grounded=True, answered=True | retry_count=0
 -> Accepted: answer is grounded and answers the question.
 ```
 
-**2. Casual wording: still retrieves the right chunk**
-```
+### 2. Casual wording: still retrieves the right chunk
+
+```text
 Ask a question: My phone arrived broken, what now?
 Candidate answer: Report the damaged phone within 48 hours of delivery and include photos.
                   You can contact customer support (Monday-Friday, 9 am-6 pm)...
 Critic -> grounded=True, answered=True | retry_count=0
 ```
 
-**3. Answer not in the documents: heals, then fails safely**
-```
+### 3. Answer not in the documents: heals, then fails safely
+
+```text
 Ask a question: Do you ship internationally?
 Candidate answer: I don't know.
 -> Could not answer: rewriting the search query.
@@ -154,7 +157,7 @@ python3 test_critic.py
 ```
 
 | Candidate answer | Expected | Result |
-|---|---|---|
+| --- | --- | --- |
 | "Yes, gift cards are refundable within 30 days." | grounded = False | PASS |
 | "The warranty lasts 2 years." (context says 1 year) | grounded = False | PASS |
 | "No, water damage is not covered." | grounded = True | PASS |
